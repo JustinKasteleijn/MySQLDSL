@@ -132,12 +132,15 @@ project is row = map (row !!) is
 evalCondition :: Condition -> [ColumnName] -> Row -> Either String Bool
 evalCondition (Eq col val) header row = do
   val' <- getColFromRow col header row
+  _    <- eqValueTypes val' val
   return $ val' == val
 evalCondition (GreaterThan col val) header row = do
   val' <- getColFromRow col header row
+  _    <- eqValueTypes val' val
   return $ val' > val
 evalCondition (LessThan col val) header row = do
   val' <- getColFromRow col header row
+  _    <- eqValueTypes val' val
   return $ val' < val
 evalCondition (And cond cond') header row = do
   res  <- evalCondition cond header row

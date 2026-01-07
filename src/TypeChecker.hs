@@ -21,3 +21,13 @@ eqTypeAndValue cols types values
     eqTypeValue TInt  (VInt _)  = True
     eqTypeValue TText (VText _) = True
     eqTypeValue _ _             = False
+
+
+eqValueTypes :: Value -> Value -> Either String ()
+eqValueTypes (VInt _) (VInt _)   = pure ()
+eqValueTypes (VText _) (VText _) = pure ()
+eqValueTypes v v'                = Left $ "Types "
+                                      ++ show (typeOfValue v)
+                                      ++ " and "
+                                      ++ show (typeOfValue v')
+                                      ++ "do not match"
