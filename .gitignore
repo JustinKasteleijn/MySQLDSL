@@ -1,0 +1,29 @@
+# Cabal / Stack build artifacts
+/dist-newstyle/
+*.hi
+*.o
+*.prof
+*.aux
+*.haddock/
+*.stack-work/
+
+# Cabal files
+*.cabal.project.local
+cabal.project.freeze
+
+# Executables
+*.exe
+*.out
+*.test
+
+# Temporary files
+*~
+*.tmp
+*.swp
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Zed
+.zed
