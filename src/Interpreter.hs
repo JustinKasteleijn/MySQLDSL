@@ -5,10 +5,12 @@ module Interpreter
 where
 
 import           AST.DBAST         (ColumnName, Condition (..), Row,
+                                    SelectStatement (Aggregate, Column),
                                     Statement (..), Table (Table), TableName,
                                     Type, Value, mkType, showEmptyVal)
 import           Control.Monad     (foldM)
-import           Data.List         (elemIndex, groupBy, intercalate, sortOn)
+import           Data.List         (elemIndex, foldl', groupBy, intercalate,
+                                    sortOn)
 import           Parsers.CSVParser (csv)
 import           Parsers.Parser    (parse)
 import           System.Directory  (doesFileExist)
@@ -119,7 +121,7 @@ projectRows :: [Int] -> [Row] -> [Row]
 projectRows indices = map (project indices)
 
 execSelect
-  :: [ColumnName]           -- SELECT columns
+  :: [SelectStatement]           -- SELECT columns
   -> TableName              -- FROM table
   -> Maybe Condition        -- optional WHERE
   -> Maybe [ColumnName]     -- optional GROUP BY
@@ -150,10 +152,13 @@ execSelect selectCols tableName cond mGroup = do
               Right $ groupRows gIndices filteredRows
 
           -- Apply selected columns
-          colIndices <- columnIndices header selectCols
+          let noAggregate = foldl' (\acc col -> case col of
+                                              Column c      -> c : acc
+                                              Aggregate _ _ -> acc ) [] selectCols
+          colIndices <- columnIndices header noAggregate
           let finalRows = projectRows colIndices groupedRows
 
-          return $ OkTable $ Table selectCols finalRows
+          return $ OkTable $ Table noAggregate finalRows
 
 
 

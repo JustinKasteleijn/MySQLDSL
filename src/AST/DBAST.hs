@@ -65,7 +65,7 @@ type DB = M.Map TableName Table
 data Statement
   = Create TableName [(ColumnName, Type)]     -- CREATE TABLE Person ( name TEXT, age INT )
   | Insert TableName [ColumnName] [Value]     -- INSERT INTO Person ( name, age) VALUES (26, "Saba")
-  | Select [ColumnName] TableName (Maybe Condition) (Maybe [ColumnName]) -- SELECT name FROM Person WHERE age > 5 GROUP BY course
+  | Select [SelectStatement] TableName (Maybe Condition) (Maybe [ColumnName]) -- SELECT name, COUNT(age) FROM Person WHERE age > 5 GROUP BY course
 
 instance Show Statement where
   show :: Statement -> String
@@ -78,7 +78,7 @@ instance Show Statement where
     = "INSERT INTO " ++ table ++ " ( " ++ intercalate ", " cols ++ " ) VALUES ( " ++ intercalate ", " (map show vals) ++ " )"
   show (Select cols name cond group)
     = "SELECT "                                         -- SELECT
-      ++ intercalate ", " cols                          -- course
+      ++ intercalate ", " (map show cols)               -- course, COUNT (name)
       ++ "\nFROM "                                      -- FROM
       ++ name                                           -- Person
       ++ "\n"                                           --
@@ -86,12 +86,12 @@ instance Show Statement where
       ++ maybe "" (intercalate ", ") group              -- GROUP BY course
 
 data Condition
-  = Eq ColumnName Value -- name = "Justin"
-  | LessThan ColumnName Value -- age < 25
-  | GreaterThan ColumnName Value -- age > 25
-  | And Condition Condition -- age > 25 AND age == 25
-  | Or Condition Condition -- age > 25 OR age == 25
-  | Not Condition -- NOT age > 25
+  = Eq ColumnName Value             -- name = "Justin"
+  | LessThan ColumnName Value       -- age < 25
+  | GreaterThan ColumnName Value    -- age > 25
+  | And Condition Condition         -- age > 25 AND age == 25
+  | Or Condition Condition          -- age > 25 OR age == 25
+  | Not Condition                   -- NOT age > 25
 
 instance Show Condition where
   show :: Condition -> String
@@ -101,3 +101,17 @@ instance Show Condition where
   show (And cond cond')      = show cond ++ " AND " ++ show cond'
   show (Or cond cond')       = show cond ++ " OR " ++ show cond'
   show (Not cond)            = "NOT ( " ++ show cond ++ " )"
+
+data SelectStatement
+  = Column ColumnName
+  | Aggregate AggregateFunc ColumnName
+
+instance Show SelectStatement where
+  show :: SelectStatement -> String
+  show (Column col)        = show col
+  show (Aggregate fun col) = show fun ++ "( " ++ show col ++ " )"
+
+data AggregateFunc
+  = SUM
+  | COUNT
+  deriving (Show)

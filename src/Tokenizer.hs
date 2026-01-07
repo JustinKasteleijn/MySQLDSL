@@ -13,6 +13,8 @@ data Token
   | TWHERE
   | TGroup
   | TBy
+  | TSum
+  | TCount
   | TIdent String
   | TType String
   | TLParen
@@ -54,6 +56,8 @@ classifyKeyword "FROM"   = TFROM
 classifyKeyword "WHERE"  = TWHERE
 classifyKeyword "GROUP"  = TGroup
 classifyKeyword "BY"     = TBy
+classifyKeyword "SUM"    = TSum
+classifyKeyword "COUNT"  = TCount
 classifyKeyword "INT"    = TType "INT"
 classifyKeyword "TEXT"   = TType "TEXT"
 classifyKeyword "NOT"    = TNot

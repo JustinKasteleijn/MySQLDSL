@@ -6,8 +6,9 @@ module Parsers.StatementParser
 where
 
 
-import           AST.DBAST           (ColumnName,
+import           AST.DBAST           (AggregateFunc (COUNT, SUM), ColumnName,
                                       Condition (And, Eq, GreaterThan, LessThan, Not, Or),
+                                      SelectStatement (..),
                                       Statement (Create, Insert, Select),
                                       Type (..), Value (VInt, VText))
 import           Control.Applicative (optional, (<|>))
@@ -91,12 +92,22 @@ parseInsert = do
 parseSelect :: Parser [Token] Statement
 parseSelect = do
   _    <- token TSELECT
-  cols <- sepBy1 (token TComma) identifier
+  cols <- sepBy1 (token TComma) parseSelectStatement
   _    <- token TFROM
   name <- identifier
   Select cols name
     <$> parseOptionalCondition
     <*> parseGroupByOptional
+
+parseSelectStatement :: Parser [Token] SelectStatement
+parseSelectStatement = parseAggregate <|> (Column <$> identifier)
+  where
+    parseAggregate :: Parser [Token] SelectStatement
+    parseAggregate = Aggregate <$> parseAggregateFunc <*> identifier
+
+    parseAggregateFunc :: Parser [Token] AggregateFunc
+    parseAggregateFunc = (SUM <$ token TSum)
+      <|> (COUNT <$ token TCount)
 
 parseOptionalCondition :: Parser [Token] (Maybe Condition)
 parseOptionalCondition = optional (token TWHERE *> parseCondition)
