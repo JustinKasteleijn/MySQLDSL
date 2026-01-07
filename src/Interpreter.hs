@@ -103,40 +103,58 @@ execInsert name cols vals = do
 -- SELECT
 --------------------------------------------------------------------------------
 
+filterRows :: Maybe Condition -> [ColumnName] -> [Row] -> Either String [Row]
+filterRows Nothing _ rows = Right rows
+filterRows (Just cond) header rows =
+    traverse (\r -> fmap (\b -> if b then r else []) (evalCondition cond header r)) rows
+  >>= \rs -> Right $ filter (not . null) rs
+
+groupRows :: [Int] -> [Row] -> [Row]
+groupRows gIndices rows =
+    let sorted  = sortOn (\r -> map (r !!) gIndices) rows
+        grouped = map head $ groupBy (\a b -> map (a !!) gIndices == map (b !!) gIndices) sorted
+    in grouped
+
+projectRows :: [Int] -> [Row] -> [Row]
+projectRows indices = map (project indices)
+
 execSelect
-  :: [ColumnName]
-  -> TableName
-  -> Maybe Condition
-  -> Maybe [ColumnName]
+  :: [ColumnName]           -- SELECT columns
+  -> TableName              -- FROM table
+  -> Maybe Condition        -- optional WHERE
+  -> Maybe [ColumnName]     -- optional GROUP BY
   -> IO (Either String InterpreterResult)
-execSelect cols name cond group = do
-  exists <- doesFileExist (filename name)
-  if not exists
-    then pure $ Left $ "Table '" ++ name ++ "' does not exist"
-    else do
-      file <- readFile (filename name)
-      case parse csv file of
-        Left err -> pure $ Left err
-        Right ((header, rows), _) -> do
-          case columnIndices header cols of
-            Left err -> pure $ Left err
-            Right is -> do
-              case traverse (\row -> fmap (\b -> (row, b)) (case cond of
-                                Just cond' -> evalCondition cond' header row
-                                Nothing    -> Right True)) rows of
-                Left err -> pure $ Left err
-                Right filtered -> do
-                  let passed = filter snd filtered
-                      projected = map (project is . fst) passed
-                   in case group of
-                     Nothing -> pure $ Right $ OkTable $ Table cols projected
-                     Just groupCols ->
-                       case columnIndices header groupCols of
-                         Left err -> pure $ Left err
-                         Right gIndices ->
-                           let sorted = sortOn (\row -> map (row !!) gIndices) projected
-                               grouped = map head $ groupBy (\a b -> map (a !!) gIndices == map (b !!) gIndices) sorted
-                           in pure $ Right $ OkTable $ Table cols grouped
+execSelect selectCols tableName cond mGroup = do
+    -- Check table
+    exists <- doesFileExist (filename tableName)
+    if not exists
+      then return $ Left $ "Table '" ++ tableName ++ "' does not exist"
+      else do
+        file <- readFile (filename tableName)
+
+        -- Parse csv
+        let parsed = parse csv file
+
+        -- run all select steps
+        return $ do
+          ((header, rows), _) <- parsed
+
+          -- Filter rows
+          filteredRows <- filterRows cond header rows
+
+          -- Apply GROUP BY if present
+          groupedRows <- case mGroup of
+            Nothing -> Right filteredRows
+            Just groupCols -> do
+              gIndices <- columnIndices header groupCols
+              Right $ groupRows gIndices filteredRows
+
+          -- Apply selected columns
+          colIndices <- columnIndices header selectCols
+          let finalRows = projectRows colIndices groupedRows
+
+          return $ OkTable $ Table selectCols finalRows
+
 
 
 columnIndices :: [ColumnName] -> [ColumnName] -> Either String [Int]
