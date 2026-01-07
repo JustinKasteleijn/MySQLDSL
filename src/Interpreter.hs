@@ -8,7 +8,7 @@ import           AST.DBAST         (ColumnName, Condition (..), Row,
                                     Statement (..), Table (Table), TableName,
                                     Type, Value, mkType, showEmptyVal)
 import           Control.Monad     (foldM)
-import           Data.List         (elemIndex, intercalate)
+import           Data.List         (elemIndex, groupBy, intercalate, sortOn)
 import           Parsers.CSVParser (csv)
 import           Parsers.Parser    (parse)
 import           System.Directory  (doesFileExist)
@@ -48,8 +48,8 @@ execute' stmt =
     Insert name cols vals ->
       execInsert name cols vals
 
-    Select cols name cond ->
-      execSelect cols name cond
+    Select cols name cond group ->
+      execSelect cols name cond group
 
 --------------------------------------------------------------------------------
 -- CREATE
@@ -107,8 +107,9 @@ execSelect
   :: [ColumnName]
   -> TableName
   -> Maybe Condition
+  -> Maybe [ColumnName]
   -> IO (Either String InterpreterResult)
-execSelect cols name cond = do
+execSelect cols name cond group = do
   exists <- doesFileExist (filename name)
   if not exists
     then pure $ Left $ "Table '" ++ name ++ "' does not exist"
@@ -125,9 +126,17 @@ execSelect cols name cond = do
                                 Nothing    -> Right True)) rows of
                 Left err -> pure $ Left err
                 Right filtered -> do
-                  let passed    = filter snd filtered
+                  let passed = filter snd filtered
                       projected = map (project is . fst) passed
-                  pure $ Right $ OkTable $ Table cols projected
+                   in case group of
+                     Nothing -> pure $ Right $ OkTable $ Table cols projected
+                     Just groupCols ->
+                       case columnIndices header groupCols of
+                         Left err -> pure $ Left err
+                         Right gIndices ->
+                           let sorted = sortOn (\row -> map (row !!) gIndices) projected
+                               grouped = map head $ groupBy (\a b -> map (a !!) gIndices == map (b !!) gIndices) sorted
+                           in pure $ Right $ OkTable $ Table cols grouped
 
 
 columnIndices :: [ColumnName] -> [ColumnName] -> Either String [Int]

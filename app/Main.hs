@@ -15,9 +15,8 @@ import           Tokenizer
 
 main :: IO ()
 main = do
-  let input = "SELECT name FROM Person "
+  let input = "SELECT name, age, course FROM Person GROUP BY course"
       tokens = tokenize input
-      tokens' = trace (show tokens) tokens
-  case parse parseStatements tokens' of
+  case parse parseStatements tokens of
     Left err        -> putStrLn $ "Parse error: " ++ err
     Right (stmt, _) -> execute stmt >>= print

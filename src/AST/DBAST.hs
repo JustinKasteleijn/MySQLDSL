@@ -65,7 +65,7 @@ type DB = M.Map TableName Table
 data Statement
   = Create TableName [(ColumnName, Type)]     -- CREATE TABLE Person ( name TEXT, age INT )
   | Insert TableName [ColumnName] [Value]     -- INSERT INTO Person ( name, age) VALUES (26, "Saba")
-  | Select [ColumnName] TableName (Maybe Condition) -- SELECT name from Person where age > 5
+  | Select [ColumnName] TableName (Maybe Condition) (Maybe [ColumnName]) -- SELECT name FROM Person WHERE age > 5 GROUP BY course
 
 instance Show Statement where
   show :: Statement -> String
@@ -76,8 +76,14 @@ instance Show Statement where
       showCols = concatMap (\(c, t) -> show c ++ " " ++ show t ++ " ")
   show (Insert table cols vals)
     = "INSERT INTO " ++ table ++ " ( " ++ intercalate ", " cols ++ " ) VALUES ( " ++ intercalate ", " (map show vals) ++ " )"
-  show (Select cols name con)
-    = "SELECT " ++ intercalate ", " cols ++ "\nFROM " ++ name ++ "\n WHERE " ++ show con
+  show (Select cols name cond group)
+    = "SELECT "                                         -- SELECT
+      ++ intercalate ", " cols                          -- course
+      ++ "\nFROM "                                      -- FROM
+      ++ name                                           -- Person
+      ++ "\n"                                           --
+      ++ maybe "" (\c -> "WHERE " ++ show c) cond       -- WHERE age > 25
+      ++ maybe "" (intercalate ", ") group              -- GROUP BY course
 
 data Condition
   = Eq ColumnName Value -- name = "Justin"

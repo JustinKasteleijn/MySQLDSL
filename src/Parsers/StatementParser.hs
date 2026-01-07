@@ -94,7 +94,9 @@ parseSelect = do
   cols <- sepBy1 (token TComma) identifier
   _    <- token TFROM
   name <- identifier
-  Select cols name <$> parseOptionalCondition
+  Select cols name
+    <$> parseOptionalCondition
+    <*> parseGroupByOptional
 
 parseOptionalCondition :: Parser [Token] (Maybe Condition)
 parseOptionalCondition = optional (token TWHERE *> parseCondition)
@@ -124,3 +126,12 @@ parseCompareOperant t constructor = do
   col <- identifier
   _   <- token t
   constructor col <$> value
+
+parseGroupByOptional :: Parser [Token] (Maybe [ColumnName])
+parseGroupByOptional = optional parseGroupBy
+
+parseGroupBy :: Parser [Token] [ColumnName]
+parseGroupBy = do
+  _ <- token TGroup
+  _ <- token TBy
+  sepBy1 (token TComma) identifier

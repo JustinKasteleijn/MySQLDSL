@@ -11,6 +11,8 @@ data Token
   | TSELECT
   | TFROM
   | TWHERE
+  | TGroup
+  | TBy
   | TIdent String
   | TType String
   | TLParen
@@ -50,6 +52,8 @@ classifyKeyword "VALUES" = TValues
 classifyKeyword "SELECT" = TSELECT
 classifyKeyword "FROM"   = TFROM
 classifyKeyword "WHERE"  = TWHERE
+classifyKeyword "GROUP"  = TGroup
+classifyKeyword "BY"     = TBy
 classifyKeyword "INT"    = TType "INT"
 classifyKeyword "TEXT"   = TType "TEXT"
 classifyKeyword "NOT"    = TNot
