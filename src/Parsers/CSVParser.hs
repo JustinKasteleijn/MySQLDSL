@@ -4,15 +4,14 @@ import           AST.CSVAST          (CSV)
 import           AST.DBAST           (Value (VInt, VText))
 import           Control.Applicative (many, some, (<|>))
 import           Data.Char           (isAlphaNum)
-import           Parsers.JSONParser  (ws)
-import           Parsers.Parser      (Parser (..), digits1, elem', satisfy,
-                                      sepBy0, sepBy1)
+import           Parsers.Parser      (Parser (..), char, digits1, lexeme,
+                                      satisfy, sepBy0, sepBy1)
 
 quotedText :: Parser String String
 quotedText = do
-    _ <- elem' '"'
+    _ <- char '"'
     content <- many (satisfy (/= '"'))
-    _ <- elem' '"'
+    _ <- char '"'
     return content
 
 unquotedText :: Parser String String
@@ -30,10 +29,10 @@ value = parseInt <|> parseText
 
 csv :: Parser String CSV
 csv = do
-    header <- sepBy1 (elem' ',') (some (satisfy isAlphaNum))
-    _ <- elem' '\n'
-    values <- sepBy0 (elem' '\n') row
+    header <- sepBy1 (char ',') (some (satisfy isAlphaNum))
+    _ <- char '\n'
+    values <- sepBy0 (char '\n') row
     return (header, values)
   where
     row :: Parser String [Value]
-    row = sepBy1 (ws *> elem' ',' <* ws) value
+    row = sepBy1 (lexeme (char ',')) value

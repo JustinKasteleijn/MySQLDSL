@@ -2,7 +2,6 @@ module Parsers.JSONParser where
 
 import           AST.JSONAST
 import           Control.Applicative (many, (<|>))
-import           Data.Functor        (($>))
 import           Parsers.Parser
 
 parseJson :: Parser String JSON
@@ -14,38 +13,32 @@ parseJson = lexeme jnull
     <|> lexeme jobject
 
 jnull :: Parser String JSON
-jnull = JNull <$ elems "null"
+jnull = JNull <$ string "null"
 
 jbool :: Parser String JSON
 jbool = JBool <$> (true <|> false)
   where
     true :: Parser String Bool
-    true = True <$ elems "true"
+    true = True <$ string "true"
 
     false :: Parser String Bool
-    false = False <$ elems "false"
+    false = False <$ string "false"
 
 jnumber :: Parser String JSON
 jnumber = JNumber <$> int
 
 jstring :: Parser String JSON
-jstring = JString <$> (elem' '"' *> many (satisfy (\c -> c /= '"' && c /= '\\')) <* elem' '"')
+jstring = JString <$> (char '"' *> many (satisfy (\c -> c /= '"' && c /= '\\')) <* char '"')
 
 jarray :: Parser String JSON
-jarray = JArray <$> (lexeme (elem' '[') *> sepBy0 (lexeme (elem' ',')) parseJson <* lexeme (elem' ']'))
+jarray = JArray <$> (lexeme (char '[') *> sepBy0 (lexeme (char ',')) parseJson <* lexeme (char ']'))
 
 jobject :: Parser String JSON
-jobject = JObject <$> (lexeme (elem' '{') *> sepBy0 (lexeme (elem' ',')) pair <* lexeme (elem' '}'))
+jobject = JObject <$> (lexeme (char '{') *> sepBy0 (lexeme (char ',')) pair <* lexeme (char '}'))
   where
     pair :: Parser String (String, JSON)
     pair = do
       JString key <- lexeme jstring
-      _ <- lexeme (elem' ':')
+      _ <- lexeme (char ':')
       value <- parseJson
       return (key, value)
-
-ws :: Parser String ()
-ws = many (satisfy (`elem` " \n\t")) $> ()
-
-lexeme :: Parser String a -> Parser String a
-lexeme p = ws *> p <* ws

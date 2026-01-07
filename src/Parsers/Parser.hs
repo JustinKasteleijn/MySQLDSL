@@ -7,6 +7,8 @@
 module Parsers.Parser (
      Parser(..),
      item,
+     char,
+     string,
      satisfy,
      elem',
      elems,
@@ -17,7 +19,9 @@ module Parsers.Parser (
      digits1,
      int,
      nat,
-     splitOn'
+     splitOn',
+     ws,
+     lexeme
   )
 where
 
@@ -25,6 +29,8 @@ import           Control.Applicative (Alternative (..))
 import qualified Data.Char           as Char
 import           Data.Data           (Proxy (Proxy))
 import           Data.Foldable       (Foldable (foldl'))
+import           Data.Functor        (($>))
+import           Data.String         (IsString)
 
 newtype Parser s a = Parser {parse :: s -> Either String (a, s)}
 
@@ -108,6 +114,18 @@ item =
     case uncons input of
       Nothing      -> Left "Unexpected end of input"
       Just (x, xs) -> Right (x, xs)
+
+char :: (Parsable s, IsString s, Eq (Elem s), Show (Elem s)) => Elem s -> Parser s (Elem s)
+char c = satisfy (==c)
+
+string :: (Parsable s, IsString s, Eq (Elem s), Show (Elem s)) => [Elem s] -> Parser s [Elem s]
+string = mapM char
+
+ws :: Parser String ()
+ws = many (satisfy (`elem` " \n\t")) $> ()
+
+lexeme :: Parser String a -> Parser String a
+lexeme p = ws *> p <* ws
 
 satisfy :: (Parsable s, Show (Elem s)) => (Elem s -> Bool) -> Parser s (Elem s)
 satisfy predicate = do
