@@ -15,6 +15,7 @@ data Token
   | TType String
   | TLParen
   | TRParen
+  | TNewline
   | TComma
   | TEq
   | TGt
@@ -24,16 +25,17 @@ data Token
 tokenize :: String -> [Token]
 tokenize [] = []
 tokenize (c : cs)
-  | isSpace c = tokenize cs
   | isAlphaNum c =
       let (word, rest) = span isAlphaNum (c : cs)
        in classifyKeyword word : tokenize rest
-  | c == '(' = TLParen : tokenize cs
-  | c == ')' = TRParen : tokenize cs
-  | c == ',' = TComma : tokenize cs
-  | c == '=' = TEq : tokenize cs
-  | c == '>' = TGt : tokenize cs
-  | c == '<' = TLt : tokenize cs
+  | c == '('  = TLParen : tokenize cs
+  | c == ')'  = TRParen : tokenize cs
+  | c == ','  = TComma : tokenize cs
+  | c == '='  = TEq : tokenize cs
+  | c == '>'  = TGt : tokenize cs
+  | c == '<'  = TLt : tokenize cs
+  | c == '\n' = TNewline : tokenize cs
+  | isSpace c = tokenize cs
   | otherwise = error $ "Unexpected character: " ++ [c]
 
 classifyKeyword :: String -> Token

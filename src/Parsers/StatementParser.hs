@@ -1,6 +1,7 @@
 module Parsers.StatementParser
   (parse,
-   parseStatement)
+   parseStatement,
+   parseStatements)
 where
 
 
@@ -47,6 +48,9 @@ value = parseInt <|>
 
     parseText :: Parser [Token] Value
     parseText = VText <$> identifier
+
+parseStatements :: Parser [Token] [Statement]
+parseStatements = sepBy0 (token TNewline) parseStatement
 
 parseStatement :: Parser [Token] Statement
 parseStatement = parseCreate

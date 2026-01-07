@@ -7,6 +7,7 @@ where
 import           AST.DBAST         (ColumnName, Condition (..), Row,
                                     Statement (..), Table (Table), TableName,
                                     Type, Value, mkType, showEmptyVal)
+import           Control.Monad     (foldM)
 import           Data.List         (elemIndex, intercalate)
 import           Parsers.CSVParser (csv)
 import           Parsers.Parser    (parse)
@@ -27,8 +28,19 @@ filename name = buildPath (name ++ ".csv")
 metaFilename :: String -> String
 metaFilename name = buildPath (name ++ "Meta.csv")
 
-execute :: Statement -> IO (Either String InterpreterResult)
-execute stmt =
+execute :: [Statement] -> IO (Either String [InterpreterResult])
+execute = foldM aux (Right [])
+  where
+    aux :: Either String [InterpreterResult] -> Statement -> IO (Either String [InterpreterResult])
+    aux (Left err) _     = return $ Left err
+    aux (Right acc) stmt = do
+      res <- execute' stmt
+      case res of
+         Left err   -> return $ Left err
+         Right res' -> return $ Right (res' : acc)
+
+execute' :: Statement -> IO (Either String InterpreterResult)
+execute' stmt =
   case stmt of
     Create name columns ->
       execCreate name columns
