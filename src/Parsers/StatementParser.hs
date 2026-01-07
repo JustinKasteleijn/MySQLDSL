@@ -1,7 +1,8 @@
 module Parsers.StatementParser
   (parse,
    parseStatement,
-   parseStatements)
+   parseStatements
+  )
 where
 
 
@@ -9,7 +10,7 @@ import           AST.DBAST           (ColumnName,
                                       Condition (And, Eq, GreaterThan, LessThan, Not, Or),
                                       Statement (Create, Insert, Select),
                                       Type (..), Value (VInt, VText))
-import           Control.Applicative ((<|>))
+import           Control.Applicative (optional, (<|>))
 import           Data.Char           (isDigit)
 import           Parsers.Parser
 import           Tokenizer
@@ -93,16 +94,18 @@ parseSelect = do
   cols <- sepBy1 (token TComma) identifier
   _    <- token TFROM
   name <- identifier
-  _    <- token TWHERE
-  Select cols name <$> parseCondition
+  Select cols name <$> parseOptionalCondition
 
-parseCondition :: Parser [Token] Condition
-parseCondition = parseCompareOperant TEq Eq
+parseOptionalCondition :: Parser [Token] (Maybe Condition)
+parseOptionalCondition = optional (token TWHERE *> parseCondition')
+
+parseCondition' :: Parser [Token] Condition
+parseCondition' = parseCompareOperant TEq Eq
   <|> parseCompareOperant TLt LessThan
   <|> parseCompareOperant TGt GreaterThan
   <|> parseBool And
   <|> parseBool Or
-  <|> (Not <$> parseCondition)
+  <|> (Not <$> parseCondition')
   where
     parseCompareOperant :: Token -> (ColumnName -> Value -> Condition) -> Parser [Token] Condition
     parseCompareOperant t constructor = do
@@ -112,5 +115,5 @@ parseCondition = parseCompareOperant TEq Eq
 
     parseBool :: (Condition -> Condition -> Condition) -> Parser [Token] Condition
     parseBool constructor = constructor
-      <$> parseCondition
-      <*> parseCondition
+      <$> parseCondition'
+      <*> parseCondition'

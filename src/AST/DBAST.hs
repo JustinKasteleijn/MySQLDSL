@@ -65,7 +65,7 @@ type DB = M.Map TableName Table
 data Statement
   = Create TableName [(ColumnName, Type)]     -- CREATE TABLE Person ( name TEXT, age INT )
   | Insert TableName [ColumnName] [Value]     -- INSERT INTO Person ( name, age) VALUES (26, "Saba")
-  | Select [ColumnName] TableName Condition -- SELECT name from Person where age > 5
+  | Select [ColumnName] TableName (Maybe Condition) -- SELECT name from Person where age > 5
 
 instance Show Statement where
   show :: Statement -> String

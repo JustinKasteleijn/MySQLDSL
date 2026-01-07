@@ -106,7 +106,7 @@ execInsert name cols vals = do
 execSelect
   :: [ColumnName]
   -> TableName
-  -> Condition
+  -> Maybe Condition
   -> IO (Either String InterpreterResult)
 execSelect cols name cond = do
   exists <- doesFileExist (filename name)
@@ -120,7 +120,9 @@ execSelect cols name cond = do
           case columnIndices header cols of
             Left err -> pure $ Left err
             Right is -> do
-              case traverse (\row -> fmap (\b -> (row, b)) (evalCondition cond header row)) rows of
+              case traverse (\row -> fmap (\b -> (row, b)) (case cond of
+                                Just cond' -> evalCondition cond' header row
+                                Nothing    -> Right True)) rows of
                 Left err -> pure $ Left err
                 Right filtered -> do
                   let passed    = filter snd filtered
@@ -140,7 +142,6 @@ columnIndices header =
 project :: [Int] -> Row -> Row
 project is row = map (row !!) is
 
--- Add type checking!
 evalCondition :: Condition -> [ColumnName] -> Row -> Either String Bool
 evalCondition (Eq col val) header row = do
   val' <- getColFromRow col header row

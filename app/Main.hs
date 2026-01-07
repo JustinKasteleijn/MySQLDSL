@@ -2,8 +2,7 @@ module Main where
 
 import           Debug.Trace             (trace)
 import           Interpreter             (execute)
-import           Parsers.StatementParser (parse, parseStatement,
-                                          parseStatements)
+import           Parsers.StatementParser (parse, parseStatements)
 import           Tokenizer
 
 -- main :: IO ()
@@ -16,7 +15,7 @@ import           Tokenizer
 
 main :: IO ()
 main = do
-  let input = "SELECT name FROM Person WHERE age > 25 \n INSERT INTO Person ( name, age, course ) VALUES ( Saba, 26, ScaryStuff )"
+  let input = "SELECT name FROM Person"
       tokens = tokenize input
       tokens' = trace (show tokens) tokens
   case parse parseStatements tokens' of
