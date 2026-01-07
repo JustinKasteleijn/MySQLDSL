@@ -183,11 +183,12 @@ splitOn' s px py = do
   y <- py
   return (x, y)
 
-chainl1 :: Parser s a -> Parser s (a -> a -> a) -> Parser s a
+chainl1 :: forall a s. Parser s a -> Parser s (a -> a -> a) -> Parser s a
 chainl1 (Parser p) (Parser op) = Parser $ \input -> do
       (x, rest) <- p input
       restChain x rest
     where
+      restChain :: a -> s -> Either String (a, s)
       restChain x input =
           case op input of
               Right (f, rest1) -> do
