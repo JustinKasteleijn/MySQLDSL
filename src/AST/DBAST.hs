@@ -2,8 +2,9 @@
 
 module AST.DBAST where
 
-import           Data.List (intercalate)
-import qualified Data.Map  as M
+import           Data.List   (intercalate, transpose)
+import qualified Data.Map    as M
+import           Text.Printf (printf)
 
 -- Database
 
@@ -56,7 +57,31 @@ data Table = Table
   { columns :: [ColumnName],
     rows    :: [Row]
   }
-  deriving (Show)
+
+columnWidths :: Table -> [Int]
+columnWidths (Table cols r) =
+    let allRows = cols : map (map showEmptyVal) r
+    in map (maximum . map length) (transpose allRows)
+
+formatRow :: [Int] -> [String] -> String
+formatRow widths row =
+    let padded = zipWith (\w s -> printf ("%-" ++ show w ++ "s") s) widths row
+    in "| " ++ unwords padded ++ " |"
+
+separator :: [Int] -> String
+separator widths = "+-" ++ concatMap (\w -> replicate w '-' ++ "-+-") widths
+
+prettyPrint :: Table -> String
+prettyPrint table@(Table cols r) =
+    let widths = columnWidths table
+        sep = separator widths
+        header = formatRow widths cols
+        body = map (formatRow widths . map showEmptyVal) r
+    in unlines $ [sep, header, sep] ++ body ++ [sep]
+
+instance Show Table where
+  show :: Table -> String
+  show = prettyPrint
 
 type DB = M.Map TableName Table
 
@@ -65,7 +90,7 @@ type DB = M.Map TableName Table
 data Statement
   = Create TableName [(ColumnName, Type)]     -- CREATE TABLE Person ( name TEXT, age INT )
   | Insert TableName [ColumnName] [Value]     -- INSERT INTO Person ( name, age) VALUES (26, "Saba")
-  | Select [SelectStatement] TableName (Maybe Condition) (Maybe [ColumnName]) -- SELECT name, COUNT(age) FROM Person WHERE age > 5 GROUP BY course
+  | Select [ColumnName] TableName (Maybe Condition) (Maybe [ColumnName]) -- SELECT name, COUNT(age) FROM Person WHERE age > 5 GROUP BY course
 
 instance Show Statement where
   show :: Statement -> String
@@ -101,17 +126,3 @@ instance Show Condition where
   show (And cond cond')      = show cond ++ " AND " ++ show cond'
   show (Or cond cond')       = show cond ++ " OR " ++ show cond'
   show (Not cond)            = "NOT ( " ++ show cond ++ " )"
-
-data SelectStatement
-  = Column ColumnName
-  | Aggregate AggregateFunc ColumnName
-
-instance Show SelectStatement where
-  show :: SelectStatement -> String
-  show (Column col)        = show col
-  show (Aggregate fun col) = show fun ++ "( " ++ show col ++ " )"
-
-data AggregateFunc
-  = SUM
-  | COUNT
-  deriving (Show)

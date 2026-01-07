@@ -5,7 +5,6 @@ module Interpreter
 where
 
 import           AST.DBAST         (ColumnName, Condition (..), Row,
-                                    SelectStatement (Aggregate, Column),
                                     Statement (..), Table (Table), TableName,
                                     Type, Value, mkType, showEmptyVal)
 import           Control.Monad     (foldM)
@@ -121,7 +120,7 @@ projectRows :: [Int] -> [Row] -> [Row]
 projectRows indices = map (project indices)
 
 execSelect
-  :: [SelectStatement]           -- SELECT columns
+  :: [ColumnName]           -- SELECT columns
   -> TableName              -- FROM table
   -> Maybe Condition        -- optional WHERE
   -> Maybe [ColumnName]     -- optional GROUP BY
@@ -151,14 +150,10 @@ execSelect selectCols tableName cond mGroup = do
               gIndices <- columnIndices header groupCols
               Right $ groupRows gIndices filteredRows
 
-          -- Apply selected columns
-          let noAggregate = foldl' (\acc col -> case col of
-                                              Column c      -> c : acc
-                                              Aggregate _ _ -> acc ) [] selectCols
-          colIndices <- columnIndices header noAggregate
+          colIndices <- columnIndices header selectCols
           let finalRows = projectRows colIndices groupedRows
 
-          return $ OkTable $ Table noAggregate finalRows
+          return $ OkTable $ Table selectCols finalRows
 
 
 
