@@ -20,6 +20,9 @@ data Token
   | TEq
   | TGt
   | TLt
+  | TNot
+  | TAnd
+  | TOr
   deriving (Show, Eq)
 
 tokenize :: String -> [Token]
@@ -49,4 +52,7 @@ classifyKeyword "FROM"   = TFROM
 classifyKeyword "WHERE"  = TWHERE
 classifyKeyword "INT"    = TType "INT"
 classifyKeyword "TEXT"   = TType "TEXT"
+classifyKeyword "NOT"    = TNot
+classifyKeyword "AND"    = TAnd
+classifyKeyword "OR"     = TOr
 classifyKeyword w        = TIdent w

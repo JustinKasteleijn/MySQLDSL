@@ -15,7 +15,7 @@ import           Tokenizer
 
 main :: IO ()
 main = do
-  let input = "SELECT name FROM Person"
+  let input = "SELECT name FROM Person "
       tokens = tokenize input
       tokens' = trace (show tokens) tokens
   case parse parseStatements tokens' of

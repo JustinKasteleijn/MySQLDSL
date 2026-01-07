@@ -97,23 +97,30 @@ parseSelect = do
   Select cols name <$> parseOptionalCondition
 
 parseOptionalCondition :: Parser [Token] (Maybe Condition)
-parseOptionalCondition = optional (token TWHERE *> parseCondition')
+parseOptionalCondition = optional (token TWHERE *> parseCondition)
 
-parseCondition' :: Parser [Token] Condition
-parseCondition' = parseCompareOperant TEq Eq
+parseCondition :: Parser [Token] Condition
+parseCondition = parseOr
+
+parseOr :: Parser [Token] Condition
+parseOr = chainl1 parseAnd (token TOr >> return Or)
+
+parseAnd :: Parser [Token] Condition
+parseAnd = chainl1 parseNot (token TAnd >> return And)
+
+parseNot :: Parser [Token] Condition
+parseNot = (token TOr >> (Not <$> parseNot))
+       <|> parseAtomic
+
+parseAtomic :: Parser [Token] Condition
+parseAtomic =
+      parseCompareOperant TEq Eq
   <|> parseCompareOperant TLt LessThan
   <|> parseCompareOperant TGt GreaterThan
-  <|> parseBool And
-  <|> parseBool Or
-  <|> (Not <$> parseCondition')
-  where
-    parseCompareOperant :: Token -> (ColumnName -> Value -> Condition) -> Parser [Token] Condition
-    parseCompareOperant t constructor = do
-      col <- identifier
-      _   <- token t
-      constructor col <$> value
+  <|> token TLParen *> parseCondition <* token TRParen
 
-    parseBool :: (Condition -> Condition -> Condition) -> Parser [Token] Condition
-    parseBool constructor = constructor
-      <$> parseCondition'
-      <*> parseCondition'
+parseCompareOperant :: Token -> (ColumnName -> Value -> Condition) -> Parser [Token] Condition
+parseCompareOperant t constructor = do
+  col <- identifier
+  _   <- token t
+  constructor col <$> value

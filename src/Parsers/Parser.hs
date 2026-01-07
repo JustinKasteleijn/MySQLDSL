@@ -21,7 +21,8 @@ module Parsers.Parser (
      nat,
      splitOn',
      ws,
-     lexeme
+     lexeme,
+     chainl1
   )
 where
 
@@ -181,3 +182,15 @@ splitOn' s px py = do
   _ <- elems s
   y <- py
   return (x, y)
+
+chainl1 :: Parser s a -> Parser s (a -> a -> a) -> Parser s a
+chainl1 (Parser p) (Parser op) = Parser $ \input -> do
+      (x, rest) <- p input
+      restChain x rest
+    where
+      restChain x input =
+          case op input of
+              Right (f, rest1) -> do
+                  (y, rest2) <- p rest1
+                  restChain (f x y) rest2
+              Left _ -> Right (x, input)
